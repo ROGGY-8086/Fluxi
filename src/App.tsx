@@ -1,0 +1,244 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { HeaderNavbar } from './components/common/HeaderNavbar';
+import { HeroSection } from './features/hero/HeroSection';
+import { TacticalRadarBoard } from './features/radar/TacticalRadarBoard';
+import { CognitivePillarsSection } from './features/pillars/CognitivePillarsSection';
+import { DrillSimulatorSection } from './features/simulator/DrillSimulatorSection';
+import { ObservedEffectsSection } from './features/testimonials/ObservedEffectsSection';
+import { BottomCTASection } from './components/common/BottomCTASection';
+import { Footer } from './components/common/Footer';
+import { ToastContainer } from './components/common/ToastContainer';
+
+import { LabDrillModal } from './features/drills/LabDrillModal';
+import { TutorialModal } from './features/modals/TutorialModal';
+import { SettingsPreferencesModal } from './features/modals/SettingsPreferencesModal';
+import { ProtocolDrawerModal } from './features/modals/ProtocolDrawerModal';
+import { PrivacyProtocolModal } from './features/modals/PrivacyProtocolModal';
+
+import { TelemetryState, UserSettings, ToastMessage, PillarDrillType } from './types';
+import { ApiService } from './services/api';
+import { soundFx } from './utils/audio';
+import { useSpacebarInteraction } from './hooks/useSpacebarInteraction';
+
+export function App() {
+  const [telemetry, setTelemetry] = useState<TelemetryState>({
+    recallBalance: 9.16,
+    perSecondGain: 214.1,
+    velocity: '154.3M/SEC',
+    errorDriftIndex: '0.384 [-1.2%]',
+    dailyFocusFee: 124,
+    focusTax: 15,
+    dailyModelRamp: 85,
+    xpPerMin: 3450,
+    streak: 7.2,
+    driftReduction: 78,
+    ratValue: 21.43,
+    nodeId: '08/A',
+    protocolStatus: 'EXTENDED DRILL V2.3',
+    isEscalating: true,
+  });
+
+  const [settings, setSettings] = useState<UserSettings>({
+    soundEnabled: true,
+    reducedMotion: false,
+    highContrast: false,
+    preferredLanguage: 'EN',
+    drillDifficulty: 'Standard',
+  });
+
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+  // Modal visibility states
+  const [drillModalOpen, setDrillModalOpen] = useState(false);
+  const [selectedDrillType, setSelectedDrillType] = useState<PillarDrillType>('dual-n-back');
+  const [tutorialOpen, setTutorialOpen] = useState(false);
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+  const [protocolDrawerOpen, setProtocolDrawerOpen] = useState(false);
+  const [privacyModalOpen, setPrivacyModalOpen] = useState(false);
+  const [protocolModalOpen, setProtocolModalOpen] = useState(false);
+
+  // Initialize data from API service
+  useEffect(() => {
+    ApiService.getTelemetry().then(setTelemetry);
+    ApiService.getSettings().then((s) => {
+      setSettings(s);
+      soundFx.enabled = s.soundEnabled;
+    });
+  }, []);
+
+  const addToast = useCallback((toast: Omit<ToastMessage, 'id'>) => {
+    const id = 'toast_' + Math.random().toString(36).substring(2, 9);
+    setToasts((prev) => [...prev, { ...toast, id }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 4500);
+  }, []);
+
+  const dismissToast = (id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  const handleUpdateTelemetry = (updates: Partial<TelemetryState>) => {
+    setTelemetry((prev) => {
+      const next = { ...prev, ...updates };
+      ApiService.updateTelemetry(next);
+      return next;
+    });
+  };
+
+  const handleUpdateSettings = (updates: Partial<UserSettings>) => {
+    setSettings((prev) => {
+      const next = { ...prev, ...updates };
+      ApiService.saveSettings(next);
+      if (typeof updates.soundEnabled === 'boolean') {
+        soundFx.enabled = updates.soundEnabled;
+      }
+      return next;
+    });
+  };
+
+  const handleStartDrill = (type: PillarDrillType = 'dual-n-back') => {
+    setSelectedDrillType(type);
+    setDrillModalOpen(true);
+  };
+
+  const handleSessionComplete = (scoreGain: number) => {
+    handleUpdateTelemetry({
+      recallBalance: +(telemetry.recallBalance + 0.12).toFixed(2),
+      xpPerMin: telemetry.xpPerMin + scoreGain,
+      streak: +(telemetry.streak + 0.1).toFixed(1),
+    });
+  };
+
+  // Global spacebar interaction
+  useSpacebarInteraction(() => {
+    if (drillModalOpen) return;
+    addToast({
+      title: '[SPACEBAR ACTION TRIGGERED]',
+      detail: 'Launched interactive focus drill from keyboard shortcut.',
+      type: 'info',
+    });
+    handleStartDrill('synaptic-velocity');
+  }, !drillModalOpen && !tutorialOpen);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  return (
+    <div className={`min-h-screen bg-parchment-100 flex flex-col font-sans ${settings.highContrast ? 'contrast-125' : ''}`}>
+      {/* Sticky Header Navbar */}
+      <HeaderNavbar
+        telemetry={telemetry}
+        settings={settings}
+        onUpdateSettings={handleUpdateSettings}
+        onOpenSettingsModal={() => setSettingsModalOpen(true)}
+        onOpenProtocolDrawer={() => setProtocolDrawerOpen(true)}
+        onStartDrill={() => handleStartDrill('dual-n-back')}
+      />
+
+      {/* Main Content Body */}
+      <main className="flex-1">
+        {/* Hero Section */}
+        <HeroSection
+          onStartDrill={() => handleStartDrill('dual-n-back')}
+          onOpenTutorial={() => setTutorialOpen(true)}
+          onOpenSetupModal={() => setSettingsModalOpen(true)}
+          reducedMotion={settings.reducedMotion}
+        />
+
+        {/* Live Telemetry & Interactive Tactical Radar Drill Board */}
+        <TacticalRadarBoard
+          telemetry={telemetry}
+          onUpdateTelemetry={handleUpdateTelemetry}
+          onAddToast={addToast}
+          onOpenSettings={() => setSettingsModalOpen(true)}
+        />
+
+        {/* The 4 Cognitive Pillars */}
+        <CognitivePillarsSection
+          onSelectPillar={handleStartDrill}
+          reducedMotion={settings.reducedMotion}
+        />
+
+        {/* Why Isometric Stress Drills Work & Drill Simulator Window */}
+        <DrillSimulatorSection
+          onAddToast={addToast}
+          onLaunchFullDrill={() => handleStartDrill('inhibitory')}
+        />
+
+        {/* Observed Effects Testimonials */}
+        <ObservedEffectsSection
+          onSelectTestimonial={(t) => {
+            addToast({
+              title: `COHORT PROFILE: ${t.name}`,
+              detail: `Verified ${t.streakDays}-day streak with ${t.scorePts.toLocaleString()} PTS.`,
+              type: 'info',
+            });
+          }}
+          reducedMotion={settings.reducedMotion}
+        />
+
+        {/* Bottom CTA Section */}
+        <BottomCTASection
+          onEnterLabDrill={() => handleStartDrill('dual-n-back')}
+          onScrollToTop={scrollToTop}
+        />
+      </main>
+
+      {/* Footer */}
+      <Footer
+        onOpenPrivacy={() => setPrivacyModalOpen(true)}
+        onOpenProtocol={() => setProtocolModalOpen(true)}
+      />
+
+      {/* Interactive Modals */}
+      <LabDrillModal
+        isOpen={drillModalOpen}
+        onClose={() => setDrillModalOpen(false)}
+        drillType={selectedDrillType}
+        onAddToast={addToast}
+        onSessionComplete={handleSessionComplete}
+      />
+
+      <TutorialModal
+        isOpen={tutorialOpen}
+        onClose={() => setTutorialOpen(false)}
+        onStartFirstDrill={() => handleStartDrill('dual-n-back')}
+      />
+
+      <SettingsPreferencesModal
+        isOpen={settingsModalOpen}
+        onClose={() => setSettingsModalOpen(false)}
+        settings={settings}
+        onUpdateSettings={handleUpdateSettings}
+        telemetry={telemetry}
+        onUpdateTelemetry={handleUpdateTelemetry}
+        onAddToast={addToast}
+      />
+
+      <ProtocolDrawerModal
+        isOpen={protocolDrawerOpen}
+        onClose={() => setProtocolDrawerOpen(false)}
+        onStartDrill={() => handleStartDrill('synaptic-velocity')}
+      />
+
+      <PrivacyProtocolModal
+        isOpen={privacyModalOpen}
+        onClose={() => setPrivacyModalOpen(false)}
+        title="CAPSTONE PRIVACY PROTOCOL"
+      />
+
+      <PrivacyProtocolModal
+        isOpen={protocolModalOpen}
+        onClose={() => setProtocolModalOpen(false)}
+        title="CAPSTONE NEURO PROTOCOL & METHODOLOGY"
+      />
+
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+    </div>
+  );
+}
+
+export default App;
