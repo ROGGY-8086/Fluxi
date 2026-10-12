@@ -2,6 +2,8 @@
 
 An interactive, responsive cognitive training and memory assistance platform designed to improve working memory, attention, and cognitive endurance through adaptive drills and cultural familiarity.
 
+> **🌐 Live Local Preview:** Click to view the website at **[http://localhost:5173](http://localhost:5173)** *(when running `npm run dev`)*
+
 Based on the **Stitch Design Reference**:
 `web application/stitch/projects/10040129155542415846/screens/cd11bf3659dc438f846c77389da5a77b`
 
@@ -127,10 +129,11 @@ npm install
 
 # Start the Vite development server
 npm run dev
-
-# Open the website in your browser:
-# http://localhost:5173
 ```
+
+### 🌐 View the Website
+Once started, open your browser and go to:
+👉 **[http://localhost:5173](http://localhost:5173)**
 
 ### Production Build
 ```bash
