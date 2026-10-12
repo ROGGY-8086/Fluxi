@@ -127,7 +127,19 @@ export const Hero3DCanvas: React.FC<Hero3DCanvasProps> = ({ reducedMotion = fals
       cornerNodes.push(node);
     });
 
-    // 2. BRAIN DIAGRAM (Replacing circular/icosahedral diagram and orbital torus ring)
+    // 2. Circular Orbital Line Wrapping Around the Cube
+    const ringGeometry = new THREE.TorusGeometry(2.55, 0.018, 12, 100);
+    const ringMaterial = new THREE.MeshBasicMaterial({
+      color: 0x646675,
+      transparent: true,
+      opacity: 0.7,
+    });
+    const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+    ring.rotation.x = Math.PI / 2.8;
+    ring.rotation.y = 0.22;
+    mainGroup.add(ring);
+
+    // 3. BRAIN DIAGRAM (Enclosed inside the cube)
     const brainGroup = new THREE.Group();
     mainGroup.add(brainGroup);
 
@@ -263,6 +275,9 @@ export const Hero3DCanvas: React.FC<Hero3DCanvasProps> = ({ reducedMotion = fals
       corticalNodes.forEach((n) => n.scale.set(nodeScale, nodeScale, nodeScale));
       cornerNodes.forEach((n) => n.scale.set(nodeScale, nodeScale, nodeScale));
 
+      // Rotate the wrapping circular ring
+      ring.rotation.z = elapsedTime * 0.16;
+
       renderer.render(scene, camera);
     };
 
@@ -279,6 +294,7 @@ export const Hero3DCanvas: React.FC<Hero3DCanvasProps> = ({ reducedMotion = fals
       leftGeom.dispose();
       rightGeom.dispose();
       neuralBridgeGeom.dispose();
+      ringGeometry.dispose();
       boxGeometry.dispose();
     };
   }, [reducedMotion]);
@@ -306,6 +322,19 @@ export const Hero3DCanvas: React.FC<Hero3DCanvasProps> = ({ reducedMotion = fals
           <circle cx="270" cy="220" r="5" fill="#F5B800" stroke="#121316" strokeWidth="1.5" />
           <circle cx="30" cy="220" r="5" fill="#F5B800" stroke="#121316" strokeWidth="1.5" />
           <circle cx="150" cy="290" r="5" fill="#F5B800" stroke="#121316" strokeWidth="1.5" />
+
+          {/* Circular Orbital Ring Wrapping Around Cube */}
+          <ellipse
+            cx="150"
+            cy="160"
+            rx="128"
+            ry="58"
+            transform="rotate(-22 150 160)"
+            stroke="#646675"
+            strokeWidth="2"
+            fill="none"
+            opacity="0.8"
+          />
 
           {/* Detailed Brain Diagram in Center */}
           <g transform="translate(100, 105)" stroke="#121316" strokeWidth="1.5" fill="none">
