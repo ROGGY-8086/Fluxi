@@ -66,6 +66,37 @@ export function App() {
     });
   }, []);
 
+  // Unlock AudioContext on first gesture & attach global tactile click listener
+  useEffect(() => {
+    const handleGesture = () => {
+      soundFx.unlockAudio();
+    };
+
+    window.addEventListener('pointerdown', handleGesture, { once: true });
+    window.addEventListener('keydown', handleGesture, { once: true });
+
+    const handleGlobalClick = (e: MouseEvent) => {
+      if (!settings.soundEnabled) return;
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+
+      const isInteractive = target.closest(
+        'button, a, input, select, textarea, [role="button"], .cursor-pointer, kbd'
+      );
+      if (isInteractive) {
+        soundFx.playClick();
+      }
+    };
+
+    window.addEventListener('click', handleGlobalClick, true);
+
+    return () => {
+      window.removeEventListener('pointerdown', handleGesture);
+      window.removeEventListener('keydown', handleGesture);
+      window.removeEventListener('click', handleGlobalClick, true);
+    };
+  }, [settings.soundEnabled]);
+
   const addToast = useCallback((toast: Omit<ToastMessage, 'id'>) => {
     const id = 'toast_' + Math.random().toString(36).substring(2, 9);
     setToasts((prev) => [...prev, { ...toast, id }]);
